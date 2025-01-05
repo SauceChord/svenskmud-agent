@@ -1,0 +1,10 @@
+[project]
+name = "svenskmud-bot"
+version = "0.1.0"
+description = "En bot för Svensk MUD"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "asyncio>=3.4.3",
+    "telnetlib3>=2.0.4",
+]
