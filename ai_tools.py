@@ -1,5 +1,6 @@
 import inspect
 import re
+from functools import wraps
 
 class AITools:
     # Map Python types to JSON Schema-compatible types
@@ -17,9 +18,8 @@ class AITools:
     def __init__(self):
         self.metadata = []
         self.funcs = {}
-        pass
 
-    def add(self, func):
+    def add(self, func):        
         metadata = self.generate_metadata(func)
         self.metadata.append(metadata)
         self.funcs[metadata["function"]["name"]] = func
@@ -53,23 +53,30 @@ class AITools:
             match.group('param_name'): match.group('description') for match in AITools.PARAM_DOCSTRING_PATTERN.finditer(docstring)
         }
         
+        # Get enum values if they exist
+        param_enums = getattr(func, '_param_enums', {})
+        
         for name, param in sig.parameters.items():
             # Fetch description from parsed docstring, or default
             description = param_descriptions.get(name, f"The {name} parameter.")
+            
+            param_data = {
+                "type": "string",
+                "description": description
+            }
+            
+            # Add enum values if they exist for this parameter
+            if name in param_enums:
+                param_data["enum"] = param_enums[name]
 
             if param.annotation != inspect.Parameter.empty:
-                param_type = AITools.TYPE_MAPPING.get(param.annotation, "string") # Default to string if type is not mapped
-                parameters[name] = {
-                    "type": param_type,
-                    "description": description
-                }
-                if param.default == inspect.Parameter.empty:  # Required if no default value
+                param_type = AITools.TYPE_MAPPING.get(param.annotation, "string")
+                param_data["type"] = param_type
+                
+                if param.default == inspect.Parameter.empty:
                     required.append(name)
-            else:
-                parameters[name] = {
-                    "type": "string",
-                    "description": description
-                }
+            
+            parameters[name] = param_data
 
         return {
             "type": "function",
@@ -88,4 +95,17 @@ def requires_approval(func):
     """Decorator to tag a function that requires user approval to execute."""
     func.requires_approval = True  # Add an attribute to the function
     return func
+
+def param_enum(param_name, values):
+    """Decorator to specify allowed enum values for a parameter.
+    
+    :param param_name: Name of the parameter
+    :param values: List of allowed values
+    """
+    def decorator(func):
+        if not hasattr(func, '_param_enums'):
+            func._param_enums = {}
+        func._param_enums[param_name] = values
+        return func
+    return decorator
       

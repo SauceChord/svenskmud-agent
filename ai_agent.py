@@ -23,6 +23,7 @@ class AIAgent:
             tools = self.tools.metadata if self.tools else None
         )
         message = response.choices[0].message
+
         if message:
             self.history.add(message)
         ai_message = message.content

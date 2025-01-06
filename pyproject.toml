@@ -10,4 +10,5 @@ dependencies = [
     "langchain-openai>=0.2.14",
     "telnetlib3>=2.0.4",
     "websockets>=14.1",
+    "openai>=1.31.0",
 ]
